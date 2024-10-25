@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Use your database provider here
+  url      = env("DATABASE_URL")
+}
+
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+
+
+
+model User {
+  id           String       @id @default(uuid())
+  fullname     String
+  email        String       @unique @db.VarChar(100) // Email field as unique identifier
+  password     String?      // Make password optional for Google signup
+  googleId     String?      @unique // Optional field to store Google user ID
+  roles        UserRole[]   @default([STUDENT]) // Specify default role here
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  courses      Course[]     @relation("CourseCreator")
+  enrollments  Enrollment[]
+  reviews      Review[]
+  cart         Cart?
+  payments     Payment[]    @relation("UserPayments")
+}
+
+
+
+
+model Course {
+  id             String     @id @default(uuid())
+  title          String
+  description    String
+  domainName     String
+  subdomainName  String[]
+  price          Float
+  creatorId      String
+  creator        User       @relation("CourseCreator", fields: [creatorId], references: [id])
+  lessons        Lesson[]
+  enrollments    Enrollment[]
+  reviews        Review[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Lesson {
+  id          String     @id @default(uuid())
+  title       String
+  content     String
+  courseId    String
+  videoUrl    String     // URL to the video file
+  videoLength Int        // Length of the video in seconds
+  videoFormat String     // Format of the video (e.g., mp4, avi)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  course      Course     @relation(fields: [courseId], references: [id])
+}
+
+
+model Enrollment {
+  id        String   @id @default(uuid())
+  userId    String
+  courseId  String
+  paymentId String?  // Optional relation to payment
+
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+}
+
+
+model Review {
+  id        String     @id @default(uuid())
+  content   String
+  rating    Int
+  userId    String
+  courseId  String
+  createdAt DateTime   @default(now())
+
+  user      User       @relation(fields: [userId], references: [id])
+  course    Course     @relation(fields: [courseId], references: [id])
+}
+
+model Domain {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  subdomains Subdomain[] 
+  courses    String[]
+}
+
+model Subdomain {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  domainId  String
+  domain    Domain    @relation(fields: [domainId], references: [id])
+  courses   String[]  
+}
+
+model Cart {
+  id      String   @id @default(uuid())
+  courses String[]
+
+  user    User?    @relation(fields: [userId], references: [id])
+  userId  String?  @unique
+}
+
+model Payment {
+  id              String        @id @default(uuid())      // Unique Payment ID
+  orderId         String        @unique                   // Razorpay Order ID or payment gateway reference
+  paymentId       String?       @unique                   // Razorpay Payment ID (if available after success)
+  signature       String?                                  // Razorpay signature for verification
+
+  userId          String                                   // User who made the payment
+  user            User        @relation("UserPayments", fields: [userId], references: [id]) // Updated relation
+
+  amount          Decimal      @default(0.00)              // Total payment amount
+  currency        String       @default("INR")             // Currency type (default INR)
+  status          PaymentStatus                             // Enum: PENDING, SUCCESS, FAILED
+  paymentMethod   String?                                   // e.g., 'Credit Card', 'UPI', 'Wallet'
+
+  courseItems     Json                                      // List of purchased courses (as JSON)
+
+  createdAt       DateTime     @default(now())             // Timestamp of payment initiation
+  updatedAt       DateTime     @updatedAt                  // Auto-updates on changes
+}
