@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { PrismaClient, UserRole } from '@prisma/client'
-import { signinSchema, signupSchema } from '../zod/auth'
+import { signinSchema, signupSchema, teacherSignupSchema } from '../zod/auth'
 import { generateToken, hashPassword, verifyPassword } from '../utils/auth'
 import STATUS_CODE from '../httpStatusCode'
 import { ZodError } from 'zod'
@@ -212,5 +212,69 @@ export const googleLoginHandler = async (req: Request, res: Response) => {
     })
   }
 }
+
+
+
+export const teacherSignup = async (req: Request, res: Response) => {
+  try {
+    const validatedData = teacherSignupSchema.parse(req.body)
+    const { id } = validatedData
+
+    const user = await prisma.user.findUnique({ where: { id } })
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    if (user.roles.includes(UserRole.TEACHER)) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already registered as a teacher',
+        user,
+      })
+    }
+
+    // Update roles to include TEACHER
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { roles: [...user.roles, UserRole.TEACHER] },
+    })
+
+    // Generate a new token with the updated roles
+    const token = await generateToken({
+      id: updatedUser.id,
+      fullname: updatedUser.fullname,
+      email: updatedUser.email,
+      roles: updatedUser.roles,
+    })
+
+    if (!token) {
+      return res.status(500).json({
+        success: false,
+        message: 'Something went wrong while generating the token',
+      })
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Successfully registered as a teacher',
+      user: {
+        id: updatedUser.id,
+        fullname: updatedUser.fullname,
+        email: updatedUser.email,
+        roles: updatedUser.roles,
+        token,
+      },
+    })
+  } catch (error: any) {
+    console.error('Error during teacher registration:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error. Please try again later.',
+    })
+  }
+}
+
+
 
 

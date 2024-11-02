@@ -17,9 +17,16 @@ export const signinSchema = z.object({
 
 export type SigninSchemaType = z.infer<typeof signinSchema>
 
+export const teacherSignupSchema = z.object({
+  id: z.string()
+})
+
+export type TeacherSignupSchemaType = z.infer<typeof teacherSignupSchema>
+
 export interface TokenPayload {
   id: string
   fullname: string
   email: string
   roles: string[]
 }
+
