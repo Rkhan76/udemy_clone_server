@@ -53,11 +53,26 @@ export const handleCreateCourse = async (req: Request, res: Response) => {
 
 export const handleFetchCourseById = async (req: Request, res: Response) => {
   const { courseId } = req.params
+  const { id } = req.userDetails
+
+  const userId = id
+
+  if(!userId) {
+    return res.status(STATUS_CODE.UNAUTHORIZED).json({
+      success: false,
+      message: "You not authorized to make change in course"
+    })
+  }
 
   try {
     const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
+        chapters:{
+          orderBy:{
+            position: 'asc'
+          }
+        },
         attachments: {
           orderBy: {
             createdAt: 'desc'
@@ -84,7 +99,6 @@ export const handleUpdateCourse = async(req:Request, res:Response)=>{
   try{
     const { courseId } = req.params
     const {userId} = req.userDetails
-    console.log(req.body)
     const values = req.body
 
     console.log(values)

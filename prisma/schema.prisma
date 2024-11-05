@@ -101,6 +101,8 @@ model Chapter {
   @@index([courseId])
 }
 
+
+
 model MuxData {
   id         String  @id @default(uuid())
   assetId    String

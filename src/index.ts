@@ -14,6 +14,7 @@ import courseRouter from './routes/course'
 import uploadRouter from './routes/upload'
 import categoryRoutes from './routes/category'
 import attachmentsRoutes from './routes/attachments'
+import chaptersRoutes from './routes/chapters'
 
 dotenv.config()
 
@@ -43,6 +44,7 @@ app.use('/api/v1/course', courseRouter)
 app.use('/api/v1/upload', uploadRouter)
 app.use('/api/v1/categories', categoryRoutes)
 app.use('/api/v1/attachments', attachmentsRoutes)
+app.use('/api/v1/chapters',chaptersRoutes)
 
 // Error-handling middleware must come last
 app.use((err: Error, req: Request, res: Response, next: NextFunction): void => {
